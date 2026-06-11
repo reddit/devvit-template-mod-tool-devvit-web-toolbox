@@ -1,0 +1,147 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "<% name %>",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Mop comments",
+        "description": "Remove this comment and all child comments. This might take a few seconds to run.",
+        "location": "comment",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/mop-comment"
+      },
+      {
+        "label": "Mop post comments",
+        "description": "Remove all comments of this post. This might take a few seconds to run.",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/mop-post"
+      },
+      {
+        "label": "Create weekly megathread",
+        "description": "Creates the weekly megathread immediately for testing or manual override.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/create-weekly-megathread"
+      }
+    ]
+  },
+  "forms": {
+    "mopComment": "/internal/form/mop-comment-submit",
+    "mopPost": "/internal/form/mop-post-submit"
+  },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/on-app-install",
+    "onCommentSubmit": "/internal/triggers/on-comment-submit",
+    "onPostCreate": "/internal/triggers/on-post-create",
+    "onPostSubmit": "/internal/triggers/on-post-submit"
+  },
+  "scheduler": {
+    "tasks": {
+      "weeklyMegathreadDaily": {
+        "endpoint": "/internal/scheduler/weekly-megathread-daily",
+        "cron": "0 0 * * *"
+      }
+    }
+  },
+  "settings": {
+    "subreddit": {
+      "keywordVotesEnabled": {
+        "type": "boolean",
+        "label": "Enable keyword vote tally comments",
+        "defaultValue": false
+      },
+      "keywordVoteKeywords": {
+        "type": "paragraph",
+        "label": "Keyword vote triggers",
+        "helpText": "Use one !keyword per line or comma-separated. Maximum 10 keywords.",
+        "defaultValue": "!agree\n!disagree",
+        "validationEndpoint": "/internal/settings/validate-keyword-vote-keywords"
+      },
+      "bannedWordsEnabled": {
+        "type": "boolean",
+        "label": "Enable banned word enforcement",
+        "defaultValue": false
+      },
+      "bannedWordsList": {
+        "type": "paragraph",
+        "label": "Banned words and phrases",
+        "helpText": "Use one word/phrase per line or comma-separated.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate-banned-words-list"
+      },
+      "weeklyMegathreadEnabled": {
+        "type": "boolean",
+        "label": "Enable weekly megathread scheduler",
+        "defaultValue": false
+      },
+      "weeklyMegathreadDayUtc": {
+        "type": "select",
+        "label": "Weekly megathread day (UTC)",
+        "defaultValue": "monday",
+        "options": [
+          {
+            "label": "Sunday",
+            "value": "sunday"
+          },
+          {
+            "label": "Monday",
+            "value": "monday"
+          },
+          {
+            "label": "Tuesday",
+            "value": "tuesday"
+          },
+          {
+            "label": "Wednesday",
+            "value": "wednesday"
+          },
+          {
+            "label": "Thursday",
+            "value": "thursday"
+          },
+          {
+            "label": "Friday",
+            "value": "friday"
+          },
+          {
+            "label": "Saturday",
+            "value": "saturday"
+          }
+        ]
+      },
+      "weeklyMegathreadTitle": {
+        "type": "string",
+        "label": "Weekly megathread title",
+        "defaultValue": "Weekly Episode Discussion Thread",
+        "validationEndpoint": "/internal/settings/validate-weekly-megathread-title"
+      },
+      "weeklyMegathreadBody": {
+        "type": "paragraph",
+        "label": "Weekly megathread body",
+        "defaultValue": "Welcome to this week's TV discussion thread.\n\nPlease keep spoilers hidden using Reddit spoiler syntax: `>!spoiler text!<` (example: >!the ending reveal!<).\n\nShare your theories, reactions, and favorite moments below.",
+        "validationEndpoint": "/internal/settings/validate-weekly-megathread-body"
+      },
+      "flairUpdaterEnabled": {
+        "type": "boolean",
+        "label": "Enable event-driven flair updater",
+        "defaultValue": false
+      }
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    }
+  }
+}
