@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { createServer, getServerPort } from '@devvit/web/server';
-import { api } from './routes/api';
-import { forms } from './routes/forms';
-import { menu } from './routes/menu';
-import { schedulerRoutes } from './routes/scheduler';
-import { settingsRoutes } from './routes/settings';
-import { triggers } from './routes/triggers';
+import { api } from './routes/api.js';
+import { forms } from './routes/forms.js';
+import { menu } from './routes/menu.js';
+import { schedulerRoutes } from './routes/scheduler.js';
+import { settingsRoutes } from './routes/settings.js';
+import { triggers } from './routes/triggers.js';
 
 // Root app for all HTTP endpoints served by the Devvit Web server bundle.
 const app = new Hono();

@@ -2,18 +2,18 @@
 
 Mop is a moderator-initiated bulk moderation tool that removes and/or locks large comment trees with one action.
 
-For moderators coming from Public API/PRAW workflows, this feature replaces ad-hoc scripts that walk comment trees and
+For moderators coming from Reddit API/PRAW workflows, this feature replaces ad-hoc scripts that walk comment trees and
 call remove/lock on each node.
 
 ## What It Does
 
 - Adds moderator menu actions for:
-    - **Mop comments**: start at a selected comment and process all descendants.
-    - **Mop post comments**: process all comments in a selected post.
+  - **Mop comments**: start at a selected comment and process all descendants.
+  - **Mop post comments**: process all comments in a selected post.
 - Shows a form where moderators choose:
-    - remove comments
-    - lock comments
-    - skip distinguished comments
+  - remove comments
+  - lock comments
+  - skip distinguished comments
 - Validates permissions and applies operations in bulk.
 
 ## Real Moderation Use Cases
@@ -22,9 +22,9 @@ call remove/lock on each node.
 - **Harassment thread containment**: lock/remove deep toxic chains.
 - **Emergency event moderation**: stop fast-moving abuse without hand-removing hundreds of comments.
 
-## Public API / PRAW vs Devvit
+## Reddit API / PRAW vs Devvit
 
-Typical Public API/PRAW method:
+Typical Reddit API/PRAW method:
 
 - Write custom script/command path per moderation workflow.
 - Build your own UI entrypoint or run scripts manually by id.
@@ -43,35 +43,34 @@ Devvit method in this template:
 ### 1) Menu/form definitions
 
 - `menu.ts`
-    - `buildNukeFields()` defines:
-        - `targetId`
-        - `remove`
-        - `lock`
-        - `skipDistinguished`
-    - `buildNukeForm()` creates the form payload used by route handlers.
+  - `buildNukeForm()` creates the form payload used by route handlers with fields for:
+    - `targetId`
+    - `remove`
+    - `lock`
+    - `skipDistinguished`
 
 ### 2) Form processing
 
 - `forms.ts`
-    - `handleMopCommentSubmit()`:
-        - normalizes booleans
-        - validates action selection (`remove` or `lock`)
-        - validates `t1_` target id
-        - calls `handleNuke()`
-    - `handleMopPostSubmit()`:
-        - same flow but validates `t3_` target id
-        - calls `handleNukePost()`
+  - `handleMopCommentSubmit()`:
+    - normalizes booleans
+    - validates action selection (`remove` or `lock`)
+    - validates `t1_` target id
+    - calls `handleNuke()`
+  - `handleMopPostSubmit()`:
+    - same flow but validates `t3_` target id
+    - calls `handleNukePost()`
 
 ### 3) Core moderation operations
 
 - `nuke.ts`
-    - `getAllCommentsInThread()` recursively walks descendants.
-    - `getAllCommentsInPost()` iterates top-level and descendants.
-    - `handleNuke()` and `handleNukePost()`:
-        - verify moderator permissions (`all` or `posts`)
-        - collect target comments
-        - apply lock/remove operations in parallel
-        - return success/failure message for UI toast
+  - `getAllCommentsInThread()` recursively walks descendants.
+  - `getAllCommentsInPost()` iterates top-level and descendants.
+  - `handleNuke()` and `handleNukePost()`:
+    - verify moderator permissions (`all` or `posts`)
+    - collect target comments
+    - apply lock/remove operations in parallel
+    - return success/failure message for UI toast
 
 ## End-to-End Flow
 

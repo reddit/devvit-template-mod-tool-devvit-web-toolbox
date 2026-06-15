@@ -4,12 +4,24 @@ import type {
   SettingsValidationResponse,
 } from '@devvit/web/shared';
 
+export type Weekday =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday';
+
 // Default values used when install settings are missing or malformed.
 const DEFAULT_TITLE = 'Weekly Episode Discussion Thread';
 const DEFAULT_BODY =
   "Welcome to this week's TV discussion thread.\n\nPlease keep spoilers hidden using Reddit spoiler syntax: `>!spoiler text!<` (example: >!the ending reveal!<).\n\nShare your theories, reactions, and favorite moments below.";
+const MAX_TITLE_LENGTH = 300;
+// Reddit text post bodies support up to 40,000 characters.
+const MAX_BODY_LENGTH = 40000;
 // Allowed UTC weekday values corresponding to the select options in devvit.json.
-const VALID_DAYS = [
+const VALID_DAYS: readonly Weekday[] = [
   'sunday',
   'monday',
   'tuesday',
@@ -21,41 +33,40 @@ const VALID_DAYS = [
 
 export type WeeklyMegathreadSettings = {
   enabled: boolean;
-  dayUtc: string;
+  dayUtc: Weekday;
   title: string;
   body: string;
 };
 
-const toSettingString = (value: unknown): string | undefined => {
-  // Devvit select-like settings may arrive as a scalar or array depending
-  // on the client shape, so normalize defensively for template stability.
+function toSettingString(value: unknown): string | undefined {
   if (typeof value === 'string') return value;
-  if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
   return undefined;
-};
+}
+
+function isWeekday(value: string): value is Weekday {
+  return VALID_DAYS.includes(value as Weekday);
+}
 
 export async function getWeeklyMegathreadSettings(): Promise<WeeklyMegathreadSettings> {
   // Read all install settings needed for weekly posting.
   const enabled = Boolean(
     await settings.get<boolean>('weeklyMegathreadEnabled')
   );
-  const configuredDay = toSettingString(
-    await settings.get('weeklyMegathreadDayUtc')
+  const configuredDay = (
+    await settings.get<string>('weeklyMegathreadDayUtc')
   )?.toLowerCase();
   const configuredTitle = toSettingString(
-    await settings.get('weeklyMegathreadTitle')
+    await settings.get<string>('weeklyMegathreadTitle')
   )?.trim();
   const configuredBody = toSettingString(
-    await settings.get('weeklyMegathreadBody')
+    await settings.get<string>('weeklyMegathreadBody')
   )?.trim();
 
   return {
     enabled,
     // Keep day in a known-good set to avoid downstream lookup issues.
     dayUtc:
-      configuredDay && VALID_DAYS.includes(configuredDay)
-        ? configuredDay
-        : 'monday',
+      configuredDay && isWeekday(configuredDay) ? configuredDay : 'monday',
     // Use defaults if setting is blank or undefined.
     title: configuredTitle || DEFAULT_TITLE,
     body: configuredBody || DEFAULT_BODY,
@@ -74,10 +85,10 @@ export function validateWeeklyMegathreadTitle(
     };
   }
 
-  if (title.length > 300) {
+  if (title.length > MAX_TITLE_LENGTH) {
     return {
       success: false,
-      error: 'Weekly megathread title must be 300 characters or fewer.',
+      error: `Weekly megathread title must be ${MAX_TITLE_LENGTH} characters or fewer.`,
     };
   }
 
@@ -97,10 +108,10 @@ export function validateWeeklyMegathreadBody(
     };
   }
 
-  if (body.length > 40000) {
+  if (body.length > MAX_BODY_LENGTH) {
     return {
       success: false,
-      error: 'Weekly megathread body must be 40000 characters or fewer.',
+      error: `Weekly megathread body must be ${MAX_BODY_LENGTH} characters or fewer.`,
     };
   }
 

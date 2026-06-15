@@ -4,7 +4,7 @@ import {
   handleMopCommentSubmit,
   handleMopPostSubmit,
   type NukeFormValues,
-} from '../features/mop/forms';
+} from '../features/mop/forms.js';
 
 // Router for form submit endpoints declared in devvit.json/forms.
 export const forms = new Hono();

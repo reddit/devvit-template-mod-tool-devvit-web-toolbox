@@ -1,6 +1,16 @@
-import type { Comment, Post } from '@devvit/web/server';
+import type {
+  Comment,
+  ModeratorPermission,
+  Post,
+  User,
+} from '@devvit/web/server';
 import { reddit } from '@devvit/web/server';
-import type { T1, T3, T5 } from '@devvit/shared-types/tid.js';
+import type { T1, T3, T5 } from '@devvit/web/shared';
+
+export type NukeResult = {
+  success: boolean;
+  message: string;
+};
 
 // Input for "mop from one comment downward".
 export type NukeProps = {
@@ -20,9 +30,91 @@ export type NukePostProps = {
   subredditId: T5;
 };
 
-// Optional filter to skip distinguished comments when requested.
-const shouldIncludeComment = (comment: Comment, skipDistinguished: boolean) =>
-  !skipDistinguished || !comment.isDistinguished();
+function failedUnexpectedly(error: unknown): NukeResult {
+  console.error(error);
+  return {
+    success: false,
+    message: 'Mop failed! Please try again later.',
+  };
+}
+
+function canManagePosts(permissions: readonly ModeratorPermission[]): boolean {
+  return permissions.includes('all') || permissions.includes('posts');
+}
+
+function shouldIncludeComment(
+  comment: Comment,
+  skipDistinguished: boolean
+): boolean {
+  return !skipDistinguished || !comment.isDistinguished();
+}
+
+async function getCurrentUserAndPost(
+  postId: T3
+): Promise<{ user: User; post: Post } | NukeResult> {
+  try {
+    const [user, post] = await Promise.all([
+      reddit.getCurrentUser(),
+      reddit.getPostById(postId),
+    ]);
+
+    if (!user) {
+      return { success: false, message: "Can't get user" };
+    }
+
+    return { user, post };
+  } catch (error) {
+    return failedUnexpectedly(error);
+  }
+}
+
+async function getCurrentUserAndComment(
+  commentId: T1
+): Promise<{ user: User; comment: Comment } | NukeResult> {
+  try {
+    const [user, comment] = await Promise.all([
+      reddit.getCurrentUser(),
+      reddit.getCommentById(commentId),
+    ]);
+
+    if (!user) {
+      return { success: false, message: "Can't get user" };
+    }
+
+    return { user, comment };
+  } catch (error) {
+    return failedUnexpectedly(error);
+  }
+}
+
+async function verifyPostModerationPermissions(
+  user: User,
+  subredditName: string,
+  deniedLogMessage: string
+): Promise<NukeResult | undefined> {
+  let modPermissions: ModeratorPermission[];
+  try {
+    modPermissions = await user.getModPermissionsForSubreddit(subredditName);
+  } catch (error) {
+    return failedUnexpectedly(error);
+  }
+
+  const allowed = canManagePosts(modPermissions);
+  const formattedPermissions = modPermissions.join(',');
+  console.log(
+    `Mod Info: r/${subredditName} u/${user.username} permissions:${formattedPermissions}: ${
+      allowed ? 'Can mod' : 'Cannot mod'
+    }`
+  );
+
+  if (allowed) return undefined;
+
+  console.info(deniedLogMessage);
+  return {
+    message: 'You do not have the correct mod permissions to do this.',
+    success: false,
+  };
+}
 
 async function* getAllCommentsInThread(
   comment: Comment,
@@ -51,195 +143,122 @@ async function* getAllCommentsInPost(
   }
 }
 
-export async function handleNukePost(props: NukePostProps) {
-  // Track runtime duration for operator logs.
-  const startTime = Date.now();
-  let success = true;
-  let message: string;
-
-  const shouldLock = props.lock;
-  const shouldRemove = props.remove;
-  const skipDistinguished = props.skipDistinguished;
+async function collectComments(
+  comments: AsyncGenerator<Comment>
+): Promise<Comment[] | NukeResult> {
+  const collected: Comment[] = [];
 
   try {
-    // Resolve calling user and target post together.
-    const [user, post] = await Promise.all([
-      reddit.getCurrentUser(),
-      reddit.getPostById(props.postId),
-    ]);
-
-    if (!user) {
-      return { success: false, message: "Can't get user" };
+    for await (const comment of comments) {
+      collected.push(comment);
     }
-
-    // Verify moderator can manage posts before bulk action.
-    const modPermissions = await user.getModPermissionsForSubreddit(
-      post.subredditName
-    );
-    const canManagePosts =
-      modPermissions.includes('all') || modPermissions.includes('posts');
-
-    console.log(
-      `Mod Info: r/${post.subredditName} u/${
-        user.username
-      } permissions:${modPermissions}: ${
-        canManagePosts ? 'Can mod' : 'Cannot mod'
-      }`
-    );
-
-    if (!canManagePosts) {
-      console.info(
-        'A user without the correct mod permissions tried to nuke all comments of a post.'
-      );
-      return {
-        message: 'You do not have the correct mod permissions to do this.',
-        success: false,
-      };
-    }
-
-    // Materialize async generator so we can apply lock/remove in bulk.
-    const comments: Comment[] = [];
-    for await (const eachComment of getAllCommentsInPost(
-      post,
-      skipDistinguished
-    )) {
-      comments.push(eachComment);
-    }
-
-    if (shouldLock) {
-      // Lock all targeted comments, skipping already-locked ones.
-      await Promise.all(
-        comments.map((comment) => comment.locked || comment.lock())
-      );
-    }
-
-    if (shouldRemove) {
-      // Remove all targeted comments, skipping already-removed ones.
-      await Promise.all(
-        comments.map((comment) => comment.removed || comment.remove())
-      );
-    }
-
-    // Build user-facing verb phrase for toast.
-    const verbage =
-      shouldLock && shouldRemove
-        ? 'removed and locked'
-        : shouldLock
-          ? 'locked'
-          : 'removed';
-
-    success = true;
-    message = `Comments ${verbage}! Refresh the page to see the cleanup.`;
-    const finishTime = Date.now();
-    const timeElapsed = (finishTime - startTime) / 1000;
-    console.info(
-      `${comments.length} comment(s) handled in ${timeElapsed} seconds.`
-    );
-  } catch (err: unknown) {
-    // Collapse unexpected errors into a safe generic message.
-    success = false;
-    message = 'Mop failed! Please try again later.';
-    console.error(err);
+  } catch (error) {
+    return failedUnexpectedly(error);
   }
 
-  return { success, message };
+  return collected;
 }
 
-export async function handleNuke(props: NukeProps) {
-  // Track runtime duration for operator logs.
-  const startTime = Date.now();
-  let success = true;
-  let message: string;
-
-  const shouldLock = props.lock;
-  const shouldRemove = props.remove;
-  const skipDistinguished = props.skipDistinguished;
-
+async function applyCommentActions(
+  comments: readonly Comment[],
+  shouldLock: boolean,
+  shouldRemove: boolean
+): Promise<NukeResult | undefined> {
   try {
-    // Resolve target comment and current user.
-    console.log('getting comment');
-    console.log(props);
-    console.log(props.commentId);
-    const comment = await reddit.getCommentById(props.commentId);
-    console.log('comment');
-    const user = await reddit.getCurrentUser();
-    console.log('current user');
-
-    if (!user) {
-      return { success: false, message: "Can't get user" };
-    }
-
-    // Verify moderator can manage posts before bulk action.
-    const modPermissions = await user.getModPermissionsForSubreddit(
-      comment.subredditName
-    );
-    console.log('mod permissions');
-    const canManagePosts =
-      modPermissions.includes('all') || modPermissions.includes('posts');
-    console.log('validated mod permissions');
-
-    console.log(
-      `Mod Info: r/${comment.subredditName} u/${
-        user.username
-      } permissions:${modPermissions}: ${
-        canManagePosts ? 'Can mod' : 'Cannot mod'
-      }`
-    );
-
-    if (!canManagePosts) {
-      console.info(
-        'A user without the correct mod permissions tried to comment mop.'
-      );
-      return {
-        message: 'You do not have the correct mod permissions to do this.',
-        success: false,
-      };
-    }
-
-    // Materialize async generator so we can apply lock/remove in bulk.
-    const comments: Comment[] = [];
-    for await (const eachComment of getAllCommentsInThread(
-      comment,
-      skipDistinguished
-    )) {
-      comments.push(eachComment);
-    }
-
     if (shouldLock) {
-      // Lock all targeted comments, skipping already-locked ones.
       await Promise.all(
-        comments.map((comment) => comment.locked || comment.lock())
+        comments
+          .filter((comment) => !comment.locked)
+          .map((comment) => comment.lock())
       );
     }
 
     if (shouldRemove) {
-      // Remove all targeted comments, skipping already-removed ones.
       await Promise.all(
-        comments.map((comment) => comment.removed || comment.remove())
+        comments
+          .filter((comment) => !comment.removed)
+          .map((comment) => comment.remove())
       );
     }
-
-    // Build user-facing verb phrase for toast.
-    const verbage =
-      shouldLock && shouldRemove
-        ? 'removed and locked'
-        : shouldLock
-          ? 'locked'
-          : 'removed';
-
-    success = true;
-    message = `Comments ${verbage}! Refresh the page to see the cleanup.`;
-    const finishTime = Date.now();
-    const timeElapsed = (finishTime - startTime) / 1000;
-    console.info(
-      `${comments.length} comment(s) handled in ${timeElapsed} seconds.`
-    );
-  } catch (err: unknown) {
-    // Collapse unexpected errors into a safe generic message.
-    success = false;
-    message = 'Mop failed! Please try again later.';
-    console.error(err);
+  } catch (error) {
+    return failedUnexpectedly(error);
   }
 
-  return { success, message };
+  return undefined;
+}
+
+function getActionLabel(shouldLock: boolean, shouldRemove: boolean): string {
+  if (shouldLock && shouldRemove) return 'removed and locked';
+  return shouldLock ? 'locked' : 'removed';
+}
+
+function logDuration(startTime: number, commentCount: number): void {
+  const timeElapsed = (Date.now() - startTime) / 1000;
+  console.info(`${commentCount} comment(s) handled in ${timeElapsed} seconds.`);
+}
+
+function successResult(shouldLock: boolean, shouldRemove: boolean): NukeResult {
+  const actionLabel = getActionLabel(shouldLock, shouldRemove);
+  return {
+    success: true,
+    message: `Comments ${actionLabel}! Refresh the page to see the cleanup.`,
+  };
+}
+
+export async function handleNukePost(
+  props: NukePostProps
+): Promise<NukeResult> {
+  const startTime = Date.now();
+  const resolved = await getCurrentUserAndPost(props.postId);
+  if ('success' in resolved) return resolved;
+
+  const permissionFailure = await verifyPostModerationPermissions(
+    resolved.user,
+    resolved.post.subredditName,
+    'A user without the correct mod permissions tried to nuke all comments of a post.'
+  );
+  if (permissionFailure) return permissionFailure;
+
+  const comments = await collectComments(
+    getAllCommentsInPost(resolved.post, props.skipDistinguished)
+  );
+  if ('success' in comments) return comments;
+
+  const actionFailure = await applyCommentActions(
+    comments,
+    props.lock,
+    props.remove
+  );
+  if (actionFailure) return actionFailure;
+
+  logDuration(startTime, comments.length);
+  return successResult(props.lock, props.remove);
+}
+
+export async function handleNuke(props: NukeProps): Promise<NukeResult> {
+  const startTime = Date.now();
+  const resolved = await getCurrentUserAndComment(props.commentId);
+  if ('success' in resolved) return resolved;
+
+  const permissionFailure = await verifyPostModerationPermissions(
+    resolved.user,
+    resolved.comment.subredditName,
+    'A user without the correct mod permissions tried to comment mop.'
+  );
+  if (permissionFailure) return permissionFailure;
+
+  const comments = await collectComments(
+    getAllCommentsInThread(resolved.comment, props.skipDistinguished)
+  );
+  if ('success' in comments) return comments;
+
+  const actionFailure = await applyCommentActions(
+    comments,
+    props.lock,
+    props.remove
+  );
+  if (actionFailure) return actionFailure;
+
+  logDuration(startTime, comments.length);
+  return successResult(props.lock, props.remove);
 }

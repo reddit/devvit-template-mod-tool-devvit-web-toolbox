@@ -3,15 +3,16 @@ import type {
   OnCommentSubmitRequest,
   OnPostSubmitRequest,
 } from '@devvit/web/shared';
-import { isFlairUpdaterEnabled } from './settings';
+import { isFlairUpdaterEnabled } from './settings.js';
 import {
   getUserCommentCount,
   getUserPostCount,
   incrementCommentCount,
   incrementPostCount,
-} from './storage';
+} from './storage.js';
+import { renderUserFlairText } from './render.js';
 
-const updateUserFlair = async (username: string) => {
+async function updateUserFlair(username: string): Promise<void> {
   // Re-read both counters after increment so flair always reflects the latest
   // values even when users alternate between posts and comments.
   const [postCount, commentCount, subreddit] = await Promise.all([
@@ -24,9 +25,9 @@ const updateUserFlair = async (username: string) => {
     subredditName: subreddit.name,
     username,
     // Educational template format: explicit post/comment split.
-    text: `posts: ${postCount} | comments: ${commentCount}`,
+    text: renderUserFlairText(postCount, commentCount),
   });
-};
+}
 
 export async function handlePostSubmitFlairUpdater(
   input: OnPostSubmitRequest

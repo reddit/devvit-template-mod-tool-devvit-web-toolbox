@@ -1,15 +1,30 @@
 import { context, reddit } from '@devvit/web/server';
-import { getWeeklyMegathreadSettings } from './settings';
+import type { T3 } from '@devvit/web/shared';
+import {
+  getWeeklyMegathreadSettings,
+  type Weekday,
+  type WeeklyMegathreadSettings,
+} from './settings.js';
+import { getIsoWeekKey } from './date.js';
 import {
   acquireWeekCreationLock,
   getLastCreatedWeek,
   releaseWeekCreationLock,
   setLastCreatedPostId,
   setLastCreatedWeek,
-} from './storage';
+} from './storage.js';
+
+type SchedulerResult =
+  | { created: true; postId: T3 }
+  | { created: false; reason: string };
+
+type ManualMegathreadResult = {
+  success: boolean;
+  message: string;
+};
 
 // Mapping from setting string values to JavaScript UTC weekday indexes.
-const DAY_TO_UTC_INDEX: Record<string, number> = {
+const DAY_TO_UTC_INDEX: Record<Weekday, number> = {
   sunday: 0,
   monday: 1,
   tuesday: 2,
@@ -19,26 +34,9 @@ const DAY_TO_UTC_INDEX: Record<string, number> = {
   saturday: 6,
 };
 
-const getIsoWeekKey = (date: Date) => {
-  // Convert to UTC midnight date to avoid local timezone drift.
-  const utcDate = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  // ISO week algorithm: shift to nearest Thursday.
-  const day = utcDate.getUTCDay() || 7;
-  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(
-    ((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
-  );
-
-  // Example format: 2026-W18
-  return `${utcDate.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
-};
-
-const createMegathreadPost = async (
-  megathreadSettings: Awaited<ReturnType<typeof getWeeklyMegathreadSettings>>
-) => {
+async function createMegathreadPost(
+  megathreadSettings: WeeklyMegathreadSettings
+): Promise<T3> {
   // Resolve current subreddit context where app is installed.
   const subreddit = await reddit.getCurrentSubreddit();
   // Submit post as app account to keep automation behavior predictable.
@@ -50,9 +48,9 @@ const createMegathreadPost = async (
   });
 
   return post.id;
-};
+}
 
-export async function runWeeklyMegathreadDaily() {
+export async function runWeeklyMegathreadCheck(): Promise<SchedulerResult> {
   // Read fresh settings each scheduler run.
   const megathreadSettings = await getWeeklyMegathreadSettings();
   if (!megathreadSettings.enabled) {
@@ -96,7 +94,7 @@ export async function runWeeklyMegathreadDaily() {
   }
 }
 
-export async function createWeeklyMegathreadManual() {
+export async function createWeeklyMegathreadManual(): Promise<ManualMegathreadResult> {
   // Manual menu action still respects feature toggle.
   const megathreadSettings = await getWeeklyMegathreadSettings();
   if (!megathreadSettings.enabled) {

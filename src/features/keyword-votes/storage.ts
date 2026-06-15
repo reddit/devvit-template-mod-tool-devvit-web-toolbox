@@ -1,12 +1,21 @@
 import { redis } from '@devvit/web/server';
 
-// Per-post hash that stores keyword -> vote count.
-const keyForCounts = (postId: string) => `keywordVotes:counts:${postId}`;
-// Per-post string key that stores the sticky tally comment ID.
-const keyForTallyComment = (postId: string) =>
-  `keywordVotes:tallyComment:${postId}`;
+type KeywordCounts = { [keyword: string]: number };
 
-export async function ensurePostKeywords(postId: string, keywords: string[]) {
+// Per-post hash that stores keyword -> vote count.
+function keyForCounts(postId: string): string {
+  return `keywordVotes:counts:${postId}`;
+}
+
+// Per-post string key that stores the sticky tally comment ID.
+function keyForTallyComment(postId: string): string {
+  return `keywordVotes:tallyComment:${postId}`;
+}
+
+export async function ensurePostKeywords(
+  postId: string,
+  keywords: readonly string[]
+): Promise<void> {
   const countsKey = keyForCounts(postId);
   // Read the current hash so we only initialize missing fields.
   const current = await redis.hGetAll(countsKey);
@@ -25,16 +34,22 @@ export async function ensurePostKeywords(postId: string, keywords: string[]) {
   }
 }
 
-export async function incrementKeywordVote(postId: string, keyword: string) {
+export async function incrementKeywordVote(
+  postId: string,
+  keyword: string
+): Promise<void> {
   const countsKey = keyForCounts(postId);
   // Atomic increment for a single keyword bucket.
   await redis.hIncrBy(countsKey, keyword, 1);
 }
 
-export async function getKeywordCounts(postId: string, keywords: string[]) {
+export async function getKeywordCounts(
+  postId: string,
+  keywords: readonly string[]
+): Promise<KeywordCounts> {
   // Read all buckets and then project only configured keywords.
   const countValues = await redis.hGetAll(keyForCounts(postId));
-  const counts: Record<string, number> = {};
+  const counts: KeywordCounts = {};
 
   for (const keyword of keywords) {
     // Parse integer count safely; malformed values fall back to zero.
@@ -45,12 +60,17 @@ export async function getKeywordCounts(postId: string, keywords: string[]) {
   return counts;
 }
 
-export async function setTallyCommentId(postId: string, commentId: string) {
+export async function setTallyCommentId(
+  postId: string,
+  commentId: string
+): Promise<void> {
   // Persist comment id so updates can edit instead of posting duplicates.
   await redis.set(keyForTallyComment(postId), commentId);
 }
 
-export async function getTallyCommentId(postId: string) {
+export async function getTallyCommentId(
+  postId: string
+): Promise<string | undefined> {
   // Missing key means no tally comment has been created yet.
   return redis.get(keyForTallyComment(postId));
 }

@@ -3,12 +3,12 @@ import type {
   SettingsValidationRequest,
   SettingsValidationResponse,
 } from '@devvit/web/shared';
-import { validateKeywordVoteKeywords } from '../features/keyword-votes/settings';
-import { validateBannedWords } from '../features/banned-words/settings';
+import { validateKeywordVoteKeywords } from '../features/keyword-votes/settings.js';
+import { validateBannedWords } from '../features/banned-words/settings.js';
 import {
   validateWeeklyMegathreadBody,
   validateWeeklyMegathreadTitle,
-} from '../features/scheduler-megathread/settings';
+} from '../features/scheduler-megathread/settings.js';
 
 // Router for optional server-side settings validation endpoints.
 // Validation endpoints are referenced from devvit.json setting definitions.

@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "deploy": "npm run type-check && npm run lint && npm run test && devvit upload",
-    "dev": "devvit playtest --verbose --log-runtime --connect",
-    "launch": "npm run deploy && devvit publish",
+    "build:watch": "vite build --watch",
+    "clean": "rm -rf dist",
+    "deploy": "npm run test && devvit upload",
+    "dev": "devvit playtest",
+    "launch": "devvit publish",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
-    "login": "devvit login",
     "prettier": "prettier --write .",
-    "test": "vitest run",
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": "npm run type-check && node --test \"dist/types/**/*.test.js\"",
     "type-check": "tsc --build"
   },
   "engines": {
@@ -29,7 +31,6 @@
     "@eslint/js": "9.39.2",
     "@types/node": "^22.19.7",
     "eslint": "9.39.2",
-    "globals": "17.2.0",
     "prettier": "3.8.1",
     "typescript": "5.8.3",
     "typescript-eslint": "8.54.0",

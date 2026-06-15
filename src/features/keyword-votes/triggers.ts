@@ -2,23 +2,32 @@ import { reddit } from '@devvit/web/server';
 import type {
   OnCommentSubmitRequest,
   OnPostCreateRequest,
+  T1,
+  T3,
 } from '@devvit/web/shared';
-import type { T1, T3 } from '@devvit/shared-types/tid.js';
-import { getKeywordVoteSettings } from './settings';
+import { getKeywordVoteSettings } from './settings.js';
 import {
   ensurePostKeywords,
   getKeywordCounts,
   getTallyCommentId,
   incrementKeywordVote,
   setTallyCommentId,
-} from './storage';
-import { renderTallyComment } from './render';
+} from './storage.js';
+import { renderTallyComment } from './render.js';
 
 // Normalize event IDs into typed fullname format expected by reddit SDK getters.
-const asT1 = (id: string): T1 => (id.startsWith('t1_') ? id : `t1_${id}`) as T1;
-const asT3 = (id: string): T3 => (id.startsWith('t3_') ? id : `t3_${id}`) as T3;
+function asT1(id: string): T1 {
+  return (id.startsWith('t1_') ? id : `t1_${id}`) as T1;
+}
 
-async function createOrRefreshTallyComment(postId: string, keywords: string[]) {
+function asT3(id: string): T3 {
+  return (id.startsWith('t3_') ? id : `t3_${id}`) as T3;
+}
+
+async function createOrRefreshTallyComment(
+  postId: string,
+  keywords: readonly string[]
+): Promise<void> {
   // Ensure every configured keyword has a bucket before rendering.
   await ensurePostKeywords(postId, keywords);
   // Read latest counts to render current snapshot.

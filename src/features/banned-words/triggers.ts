@@ -2,15 +2,21 @@ import { reddit } from '@devvit/web/server';
 import type {
   OnCommentSubmitRequest,
   OnPostSubmitRequest,
+  T1,
+  T3,
 } from '@devvit/web/shared';
-import type { T1, T3 } from '@devvit/shared-types/tid.js';
-import { getBannedWordsSettings } from './settings';
-import { findMatchedBannedWord } from './matching';
+import { getBannedWordsSettings } from './settings.js';
+import { findMatchedBannedWord } from './matching.js';
 
 // Devvit payload IDs may arrive with or without fullnames.
 // These helpers normalize to the typed IDs required by reddit.get*ById methods.
-const asT1 = (id: string): T1 => (id.startsWith('t1_') ? id : `t1_${id}`) as T1;
-const asT3 = (id: string): T3 => (id.startsWith('t3_') ? id : `t3_${id}`) as T3;
+function asT1(id: string): T1 {
+  return (id.startsWith('t1_') ? id : `t1_${id}`) as T1;
+}
+
+function asT3(id: string): T3 {
+  return (id.startsWith('t3_') ? id : `t3_${id}`) as T3;
+}
 
 async function isSubredditModerator(
   authorName: string | undefined,
@@ -31,8 +37,8 @@ async function sendRemovalModmail(
   authorName: string | undefined,
   contentType: 'comment' | 'post',
   matchedWord: string
-) {
-  // Skip if we do not have a valid user recipient.
+): Promise<void> {
+  // Modmail needs a real user recipient, so skip missing or deleted authors.
   if (!subredditName || !authorName || authorName === '[deleted]') return;
 
   // Create a user-facing modmail conversation that explains removal cause.

@@ -4,9 +4,14 @@ import type {
   SettingsValidationResponse,
 } from '@devvit/web/shared';
 
+export type BannedWordsSettings = {
+  enabled: boolean;
+  words: string[];
+};
+
 // Parse a moderator-provided CSV/newline list into canonical values used for matching.
 // We normalize to lowercase and remove duplicates so matching logic can stay simple.
-const parseBannedWords = (raw: string | undefined): string[] => {
+function parseBannedWords(raw: string | undefined): string[] {
   // Empty setting means no banned words configured.
   if (!raw) return [];
 
@@ -20,9 +25,9 @@ const parseBannedWords = (raw: string | undefined): string[] => {
 
   // Deduplicate so repeated entries do not waste compute.
   return [...new Set(values)];
-};
+}
 
-export async function getBannedWordsSettings() {
+export async function getBannedWordsSettings(): Promise<BannedWordsSettings> {
   // Feature toggle stored in subreddit install settings.
   const enabled = Boolean(await settings.get<boolean>('bannedWordsEnabled'));
   // Raw list entered by moderators in settings UI.

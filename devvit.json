@@ -8,21 +8,21 @@
   "menu": {
     "items": [
       {
-        "label": "Mop comments",
+        "label": "[Template] Mop comments",
         "description": "Remove this comment and all child comments. This might take a few seconds to run.",
         "location": "comment",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/mop-comment"
       },
       {
-        "label": "Mop post comments",
+        "label": "[Template] Mop post comments",
         "description": "Remove all comments of this post. This might take a few seconds to run.",
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/mop-post"
       },
       {
-        "label": "Create weekly megathread",
+        "label": "[Template] Create weekly megathread",
         "description": "Creates the weekly megathread immediately for testing or manual override.",
         "location": "subreddit",
         "forUserType": "moderator",
@@ -42,8 +42,8 @@
   },
   "scheduler": {
     "tasks": {
-      "weeklyMegathreadDaily": {
-        "endpoint": "/internal/scheduler/weekly-megathread-daily",
+      "weeklyMegathreadCheck": {
+        "endpoint": "/internal/scheduler/weekly-megathread-check",
         "cron": "0 0 * * *"
       }
     }
@@ -134,8 +134,8 @@
     }
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "npm run build",
+    "dev": "npm run build:watch"
   },
   "permissions": {
     "redis": true,

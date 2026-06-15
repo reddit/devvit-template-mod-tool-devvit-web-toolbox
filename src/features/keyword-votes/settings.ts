@@ -4,13 +4,18 @@ import type {
   SettingsValidationResponse,
 } from '@devvit/web/shared';
 
+export type KeywordVoteSettings = {
+  enabled: boolean;
+  keywords: readonly string[];
+};
+
 // Default fallback used when moderators do not provide valid custom keywords.
-const DEFAULT_KEYWORDS = ['!agree', '!disagree'];
+const DEFAULT_KEYWORDS: readonly string[] = ['!agree', '!disagree'];
 // Template guardrail to keep UI manageable and Redis payloads bounded.
 const MAX_KEYWORDS = 10;
 
 // Parse raw setting text into candidate keywords.
-const parseKeywordsRaw = (raw: string | undefined): string[] => {
+function parseKeywordsRaw(raw: string | undefined): string[] {
   // No value configured yet.
   if (!raw) return [];
 
@@ -23,10 +28,10 @@ const parseKeywordsRaw = (raw: string | undefined): string[] => {
       // Ignore empty tokens.
       .filter(Boolean)
   );
-};
+}
 
 // Normalize and constrain moderator input into safe runtime keywords.
-const normalizeKeywords = (raw: string | undefined): string[] => {
+function normalizeKeywords(raw: string | undefined): string[] {
   const deduped: string[] = [];
   for (const keyword of parseKeywordsRaw(raw)) {
     // Enforce convention: only "!" commands count as vote keywords.
@@ -37,9 +42,9 @@ const normalizeKeywords = (raw: string | undefined): string[] => {
     if (deduped.length >= MAX_KEYWORDS) break;
   }
   return deduped;
-};
+}
 
-export async function getKeywordVoteSettings() {
+export async function getKeywordVoteSettings(): Promise<KeywordVoteSettings> {
   // Read install setting toggle.
   const enabled = Boolean(await settings.get<boolean>('keywordVotesEnabled'));
   // Read raw keyword setting text.

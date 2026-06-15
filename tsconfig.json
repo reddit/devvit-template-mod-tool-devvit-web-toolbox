@@ -26,5 +26,5 @@
     "tsBuildInfoFile": "dist/types/tsconfig.tsbuildinfo"
   },
   "include": ["src/**/*", "vite.config.ts"],
-  "exclude": []
+  "exclude": ["dist/", "node_modules/"]
 }

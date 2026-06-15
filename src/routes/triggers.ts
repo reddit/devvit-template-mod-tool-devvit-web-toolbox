@@ -6,31 +6,31 @@ import type {
   OnPostSubmitRequest,
   TriggerResponse,
 } from '@devvit/web/shared';
-import { handlePostCreateKeywordVotes } from '../features/keyword-votes/triggers';
-import { handleCommentSubmitKeywordVotes } from '../features/keyword-votes/triggers';
+import { handlePostCreateKeywordVotes } from '../features/keyword-votes/triggers.js';
+import { handleCommentSubmitKeywordVotes } from '../features/keyword-votes/triggers.js';
 import {
   handleCommentSubmitBannedWords,
   handlePostSubmitBannedWords,
-} from '../features/banned-words/triggers';
+} from '../features/banned-words/triggers.js';
 import {
   handleCommentSubmitFlairUpdater,
   handlePostSubmitFlairUpdater,
-} from '../features/flair-updater/triggers';
+} from '../features/flair-updater/triggers.js';
 
 // Router for trigger endpoints declared in devvit.json/triggers.
 export const triggers = new Hono();
 
-const runFeatureSafely = async (
+async function runFeatureSafely(
   featureName: string,
   runner: () => Promise<void>
-) => {
+): Promise<void> {
   try {
     await runner();
   } catch (error) {
     // Keep one feature failure from breaking all other trigger handlers.
     console.error(`[triggers] Feature "${featureName}" failed`, error);
   }
-};
+}
 
 triggers.post('/on-app-install', async (c) => {
   // Parse install trigger payload.

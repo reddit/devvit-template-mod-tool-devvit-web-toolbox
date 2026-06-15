@@ -1,11 +1,12 @@
 // Escape regex metacharacters so moderator-entered text is treated literally.
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-export const findMatchedBannedWord = (
+export function findMatchedBannedWord(
   content: string,
   bannedWords: string[]
-): string | undefined => {
+): string | undefined {
   // Lowercase once so phrase checks can use a cheap includes() call.
   const normalized = content.toLowerCase();
 
@@ -26,4 +27,4 @@ export const findMatchedBannedWord = (
 
   // No banned content found.
   return undefined;
-};
+}

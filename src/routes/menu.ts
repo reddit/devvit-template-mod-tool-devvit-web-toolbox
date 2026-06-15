@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
-import { buildNukeForm } from '../features/mop/menu';
-import { createWeeklyMegathreadManual } from '../features/scheduler-megathread/handlers';
+import { buildNukeForm } from '../features/mop/menu.js';
+import { createWeeklyMegathreadManual } from '../features/scheduler-megathread/handlers.js';
 
 // Router for menu actions declared in devvit.json/menu.items.
 export const menu = new Hono();
