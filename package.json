@@ -11,7 +11,7 @@
     "deploy": "npm run test && devvit upload",
     "dev": "devvit playtest",
     "launch": "devvit publish",
-    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "prettier": "prettier --write .",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "npm run type-check && node --test \"dist/types/**/*.test.js\"",
