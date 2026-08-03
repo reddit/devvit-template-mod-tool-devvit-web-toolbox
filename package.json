@@ -13,9 +13,9 @@
     "launch": "devvit publish",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "prettier": "prettier --write .",
-    "test": "npm run lint && npm run test:unit",
-    "test:unit": "npm run type-check && node --test \"dist/types/**/*.test.js\"",
-    "type-check": "tsc --build"
+    "test": "npm run test:types && npm run lint && npm run test:unit && npm run build",
+    "test:types": "tsc --build",
+    "test:unit": "npm run test:types && node --test \"dist/types/**/*.test.js\""
   },
   "engines": {
     "node": ">=22.20.0"
@@ -34,6 +34,6 @@
     "prettier": "3.8.1",
     "typescript": "5.8.3",
     "typescript-eslint": "8.54.0",
-    "vite": "7.3.1"
+    "vite": "7.3.6"
   }
 }
