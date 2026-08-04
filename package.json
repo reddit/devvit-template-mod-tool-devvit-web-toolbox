@@ -23,7 +23,7 @@
   "dependencies": {
     "@devvit/start": "0.13.10",
     "@devvit/web": "0.13.10",
-    "@hono/node-server": "^1.19.9",
+    "@hono/node-server": "^2.1.0",
     "devvit": "^0.13.2",
     "hono": "4.12.18"
   },
