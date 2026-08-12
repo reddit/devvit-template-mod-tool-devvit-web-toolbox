@@ -18,7 +18,7 @@
     "test:unit": "npm run test:types && node --test \"dist/types/**/*.test.js\""
   },
   "engines": {
-    "node": ">=22.20.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "@devvit/start": "0.13.11",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",
-    "@types/node": "^22.19.7",
+    "@types/node": "^24.13.3",
     "eslint": "9.39.2",
     "prettier": "3.8.1",
     "typescript": "5.8.3",
