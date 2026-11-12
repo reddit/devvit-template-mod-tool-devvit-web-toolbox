@@ -42,6 +42,14 @@ function canManagePosts(permissions: readonly ModeratorPermission[]): boolean {
   return permissions.includes('all') || permissions.includes('posts');
 }
 
+export function verifyInstallationSubreddit(
+  targetSubredditId: T5,
+  installationSubredditId: T5
+): NukeResult | undefined {
+  if (targetSubredditId === installationSubredditId) return undefined;
+  return { success: false, message: 'You can only mop this subreddit.' };
+}
+
 function shouldIncludeComment(
   comment: Comment,
   skipDistinguished: boolean
@@ -212,6 +220,12 @@ export async function handleNukePost(
   const resolved = await getCurrentUserAndPost(props.postId);
   if ('success' in resolved) return resolved;
 
+  const subredditFailure = verifyInstallationSubreddit(
+    resolved.post.subredditId,
+    props.subredditId
+  );
+  if (subredditFailure) return subredditFailure;
+
   const permissionFailure = await verifyPostModerationPermissions(
     resolved.user,
     resolved.post.subredditName,
@@ -239,6 +253,12 @@ export async function handleNuke(props: NukeProps): Promise<NukeResult> {
   const startTime = Date.now();
   const resolved = await getCurrentUserAndComment(props.commentId);
   if ('success' in resolved) return resolved;
+
+  const subredditFailure = verifyInstallationSubreddit(
+    resolved.comment.subredditId,
+    props.subredditId
+  );
+  if (subredditFailure) return subredditFailure;
 
   const permissionFailure = await verifyPostModerationPermissions(
     resolved.user,
