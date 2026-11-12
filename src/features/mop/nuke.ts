@@ -212,6 +212,10 @@ export async function handleNukePost(
   const resolved = await getCurrentUserAndPost(props.postId);
   if ('success' in resolved) return resolved;
 
+  if (resolved.post.subredditId !== props.subredditId) {
+    return { success: false, message: 'You can only mop this subreddit.' };
+  }
+
   const permissionFailure = await verifyPostModerationPermissions(
     resolved.user,
     resolved.post.subredditName,
@@ -239,6 +243,10 @@ export async function handleNuke(props: NukeProps): Promise<NukeResult> {
   const startTime = Date.now();
   const resolved = await getCurrentUserAndComment(props.commentId);
   if ('success' in resolved) return resolved;
+
+  if (resolved.comment.subredditId !== props.subredditId) {
+    return { success: false, message: 'You can only mop this subreddit.' };
+  }
 
   const permissionFailure = await verifyPostModerationPermissions(
     resolved.user,

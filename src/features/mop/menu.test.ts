@@ -15,6 +15,7 @@ void test('builds a Mop form with the selected target id', () => {
     type: 'string',
     helpText: 'Auto-filled from the selected item.',
     required: true,
+    disabled: true,
     defaultValue: 't1_comment',
   });
 });
@@ -29,6 +30,7 @@ void test('defaults Mop moderation actions to remove only', () => {
       type: 'string',
       helpText: 'Auto-filled from the selected item.',
       required: true,
+      disabled: true,
       defaultValue: 't3_post',
     },
     {

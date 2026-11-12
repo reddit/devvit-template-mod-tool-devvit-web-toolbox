@@ -11,6 +11,7 @@ export function buildNukeForm(title: string, targetId: string): Form {
         type: 'string',
         helpText: 'Auto-filled from the selected item.',
         required: true,
+        disabled: true,
         defaultValue: targetId,
       },
       {
